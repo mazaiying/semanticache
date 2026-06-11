@@ -1,0 +1,30 @@
+# SemantiCache Dependencies
+# NOTE: vllm is NOT required. SemantiCache uses HuggingFace Transformers
+#       as its inference backend, which is compatible with CUDA 11.5+.
+# Optional (only if you want to compare vllm APC on CUDA 12+):
+#   pip install vllm>=0.5.0
+
+# Core inference
+torch>=2.0.0
+transformers>=4.40.0
+accelerate>=0.27.0
+
+# Embedding & retrieval
+sentence-transformers>=2.7.0
+faiss-cpu>=1.7.0            # use faiss-gpu if available
+
+# Datasets
+datasets>=2.19.0
+
+# Quality metrics
+rouge-score>=0.1.2
+bert-score>=0.3.13
+
+# Utilities
+numpy>=1.24.0
+pandas>=2.0.0
+pyyaml>=6.0
+tqdm>=4.66.0
+huggingface_hub>=0.23.0
+matplotlib>=3.8.0
+seaborn>=0.13.0

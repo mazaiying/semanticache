@@ -1,0 +1,56 @@
+# SemantiCache Default Configuration
+
+# Model settings
+model:
+  name: "Qwen/Qwen2.5-7B-Instruct"
+  local_path: "~/models/qwen2.5-7b"
+  max_model_len: 4096
+  gpu_device: 1                    # Use GPU 1 (A100 80GB)
+  dtype: "bfloat16"
+
+# SemantiCache core settings
+semanticache:
+  # Hierarchical Semantic Index (HSI)
+  hsi:
+    embedding_dim: 128             # Compressed semantic vector dimension
+    lsh_num_tables: 8              # Number of LSH hash tables
+    lsh_num_bits: 12               # Bits per hash table
+    exact_match_first: true        # Always try exact match before semantic
+
+  # Quality-Bounded Reuse (QBR)
+  qbr:
+    similarity_threshold: 0.85    # τ: min similarity to allow reuse
+    quality_metric: "bertscore"   # Quality verification metric
+    adaptive: true                 # Adaptive threshold adjustment
+
+  # Tiered Storage Manager (TSM)
+  tsm:
+    gpu_capacity_gb: 40            # L1: GPU HBM reserved for KV cache
+    cpu_capacity_gb: 128           # L2: CPU RAM for warm cache
+    ssd_capacity_gb: 500           # L3: NVMe SSD for cold cache
+    eviction_policy: "lru"         # LRU eviction
+
+  # Tenant Isolation Layer (TIL)
+  til:
+    enable_isolation: true
+    shared_prefixes: ["system_prompt", "rag_context"]
+    private_labels: ["user_history", "personal_data"]
+
+# Evaluation settings
+eval:
+  dataset: "sharegpt"              # sharegpt | lmsys | rag_synthetic
+  num_requests: 1000
+  concurrency: 8                   # Concurrent requests
+  warmup_requests: 100
+  output_dir: "results/"
+
+# Baseline comparisons
+baselines:
+  - "no_cache"
+  - "vllm_apc"
+  - "semshare_kv"
+
+# Logging
+logging:
+  level: "INFO"
+  save_traces: true
