@@ -1,0 +1,7 @@
+{
+  "exact_hash_avg_ms": 0.023696422576904297,
+  "embedding_avg_ms": 8.745419980958104,
+  "lsh_lookup_avg_ms": 0.2025399710983038,
+  "qbr_similarity_avg_ms": 0.012309063225984573,
+  "total_semantic_overhead_ms": 8.960269015282393
+}

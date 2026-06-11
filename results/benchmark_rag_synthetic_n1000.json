@@ -1,0 +1,50 @@
+[
+  {
+    "name": "No Cache",
+    "num_requests": 1000,
+    "hit_rate": 0.0,
+    "exact_hit_rate": 0.0,
+    "semantic_hit_rate": 0.0,
+    "miss_rate": 0.0,
+    "mean_ttft_ms": 34.67258508503437,
+    "median_ttft_ms": 34.350560978055,
+    "p99_ttft_ms": 36.029486451298,
+    "throughput_rps": 28.841229967350404
+  },
+  {
+    "name": "Exact Cache (APC)",
+    "num_requests": 1000,
+    "hit_rate": 0.88,
+    "exact_hit_rate": 0.88,
+    "semantic_hit_rate": 0.0,
+    "miss_rate": 0.12,
+    "mean_ttft_ms": 31.070757675915956,
+    "median_ttft_ms": 30.52201122045517,
+    "p99_ttft_ms": 37.68640572205186,
+    "throughput_rps": 32.184602977195354
+  },
+  {
+    "name": "SemShareKV",
+    "num_requests": 1000,
+    "hit_rate": 0.979,
+    "exact_hit_rate": 0.0,
+    "semantic_hit_rate": 0.979,
+    "miss_rate": 0.021,
+    "mean_ttft_ms": 30.926699593663216,
+    "median_ttft_ms": 30.554352328181267,
+    "p99_ttft_ms": 40.08576227352023,
+    "throughput_rps": 32.33452043505143
+  },
+  {
+    "name": "SemantiCache",
+    "num_requests": 1000,
+    "hit_rate": 0.967,
+    "exact_hit_rate": 0.257,
+    "semantic_hit_rate": 0.71,
+    "miss_rate": 0.033,
+    "mean_ttft_ms": 30.580498173832893,
+    "median_ttft_ms": 30.469371937215328,
+    "p99_ttft_ms": 35.31039673835039,
+    "throughput_rps": 32.70057911795824
+  }
+]

@@ -1,0 +1,178 @@
+[
+  {
+    "name": "\u03c4=0.6",
+    "num_requests": 200,
+    "hit_rate": 0.89,
+    "exact_hit_rate": 0.185,
+    "semantic_hit_rate": 0.705,
+    "miss_rate": 0.11,
+    "mean_ttft_ms": 31.21523787267506,
+    "median_ttft_ms": 30.81335686147213,
+    "p99_ttft_ms": 37.90072921663523,
+    "throughput_rps": 32.035636059508356,
+    "leakage_rate": 0.0,
+    "fairness_index": 0.9999188671728988,
+    "gpu_memory_gb": {
+      "before_gb": 15.333,
+      "after_gb": 15.333,
+      "delta_gb": 0.0
+    },
+    "tau": 0.6,
+    "bertscore": 0.8211,
+    "bertscore_n_samples": 141
+  },
+  {
+    "name": "\u03c4=0.65",
+    "num_requests": 200,
+    "hit_rate": 0.875,
+    "exact_hit_rate": 0.17,
+    "semantic_hit_rate": 0.705,
+    "miss_rate": 0.125,
+    "mean_ttft_ms": 31.188701121136546,
+    "median_ttft_ms": 30.638492666184902,
+    "p99_ttft_ms": 37.599099949002266,
+    "throughput_rps": 32.06289342143528,
+    "leakage_rate": 0.0,
+    "fairness_index": 0.9999861961806559,
+    "gpu_memory_gb": {
+      "before_gb": 15.333,
+      "after_gb": 15.333,
+      "delta_gb": 0.0
+    },
+    "tau": 0.65,
+    "bertscore": 0.8322,
+    "bertscore_n_samples": 141
+  },
+  {
+    "name": "\u03c4=0.7",
+    "num_requests": 200,
+    "hit_rate": 0.895,
+    "exact_hit_rate": 0.17,
+    "semantic_hit_rate": 0.725,
+    "miss_rate": 0.105,
+    "mean_ttft_ms": 32.039922876283526,
+    "median_ttft_ms": 30.659505166113377,
+    "p99_ttft_ms": 43.71686052531003,
+    "throughput_rps": 31.211061395538387,
+    "leakage_rate": 0.0,
+    "fairness_index": 0.9999977342537212,
+    "gpu_memory_gb": {
+      "before_gb": 15.333,
+      "after_gb": 15.333,
+      "delta_gb": 0.0
+    },
+    "tau": 0.7,
+    "bertscore": 0.8179,
+    "bertscore_n_samples": 145
+  },
+  {
+    "name": "\u03c4=0.75",
+    "num_requests": 200,
+    "hit_rate": 0.89,
+    "exact_hit_rate": 0.185,
+    "semantic_hit_rate": 0.705,
+    "miss_rate": 0.11,
+    "mean_ttft_ms": 31.714687617495656,
+    "median_ttft_ms": 30.71776870638132,
+    "p99_ttft_ms": 45.534016583114855,
+    "throughput_rps": 31.53113194936034,
+    "leakage_rate": 0.0,
+    "fairness_index": 0.9997716772180067,
+    "gpu_memory_gb": {
+      "before_gb": 15.333,
+      "after_gb": 15.333,
+      "delta_gb": 0.0
+    },
+    "tau": 0.75,
+    "bertscore": 0.8346,
+    "bertscore_n_samples": 141
+  },
+  {
+    "name": "\u03c4=0.8",
+    "num_requests": 200,
+    "hit_rate": 0.88,
+    "exact_hit_rate": 0.165,
+    "semantic_hit_rate": 0.715,
+    "miss_rate": 0.12,
+    "mean_ttft_ms": 40.33120463602245,
+    "median_ttft_ms": 39.69874791800976,
+    "p99_ttft_ms": 48.81743311882019,
+    "throughput_rps": 24.794697034832286,
+    "leakage_rate": 0.0,
+    "fairness_index": 0.9999820831606379,
+    "gpu_memory_gb": {
+      "before_gb": 15.333,
+      "after_gb": 15.333,
+      "delta_gb": 0.0
+    },
+    "tau": 0.8,
+    "bertscore": 0.8469,
+    "bertscore_n_samples": 143
+  },
+  {
+    "name": "\u03c4=0.85",
+    "num_requests": 200,
+    "hit_rate": 0.835,
+    "exact_hit_rate": 0.215,
+    "semantic_hit_rate": 0.62,
+    "miss_rate": 0.165,
+    "mean_ttft_ms": 32.49560987576842,
+    "median_ttft_ms": 30.885149724781513,
+    "p99_ttft_ms": 45.36753945052624,
+    "throughput_rps": 30.773387661380305,
+    "leakage_rate": 0.0,
+    "fairness_index": 0.9997117918800987,
+    "gpu_memory_gb": {
+      "before_gb": 15.333,
+      "after_gb": 15.333,
+      "delta_gb": 0.0
+    },
+    "tau": 0.85,
+    "bertscore": 0.8583,
+    "bertscore_n_samples": 124
+  },
+  {
+    "name": "\u03c4=0.9",
+    "num_requests": 200,
+    "hit_rate": 0.81,
+    "exact_hit_rate": 0.25,
+    "semantic_hit_rate": 0.56,
+    "miss_rate": 0.19,
+    "mean_ttft_ms": 34.328795121982694,
+    "median_ttft_ms": 31.80702682584524,
+    "p99_ttft_ms": 45.19745264202355,
+    "throughput_rps": 29.13006403069599,
+    "leakage_rate": 0.0,
+    "fairness_index": 0.999420207574055,
+    "gpu_memory_gb": {
+      "before_gb": 15.333,
+      "after_gb": 15.333,
+      "delta_gb": 0.0
+    },
+    "tau": 0.9,
+    "bertscore": 0.8653,
+    "bertscore_n_samples": 112
+  },
+  {
+    "name": "\u03c4=0.95",
+    "num_requests": 200,
+    "hit_rate": 0.73,
+    "exact_hit_rate": 0.33,
+    "semantic_hit_rate": 0.4,
+    "miss_rate": 0.27,
+    "mean_ttft_ms": 32.522224355489016,
+    "median_ttft_ms": 31.031311489641666,
+    "p99_ttft_ms": 45.35509778186678,
+    "throughput_rps": 30.748204337727675,
+    "leakage_rate": 0.0,
+    "fairness_index": 0.9999302966425739,
+    "gpu_memory_gb": {
+      "before_gb": 15.333,
+      "after_gb": 15.333,
+      "delta_gb": 0.0
+    },
+    "tau": 0.95,
+    "bertscore": 0.8709,
+    "bertscore_n_samples": 80
+  }
+]
