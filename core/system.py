@@ -41,6 +41,9 @@ class SemantiCache:
         similarity_threshold: float = 0.85,
         adaptive_qbr: bool = True,
         storage_config: Optional[StorageConfig] = None,
+        enable_semantic: bool = True,
+        enable_qbr: bool = True,
+        enable_til: bool = True,
     ):
         if storage_config is None:
             storage_config = StorageConfig()
@@ -56,6 +59,10 @@ class SemantiCache:
         )
         self.tsm = TieredStorageManager(storage_config)
         self.til = TenantIsolationLayer()
+        self.enable_semantic = enable_semantic
+        self.enable_qbr = enable_qbr
+        self.enable_til = enable_til
+        self.tsm.set_eviction_callback(self._handle_final_evict)
 
         self._request_log: List[Dict] = []
 
@@ -64,7 +71,7 @@ class SemantiCache:
         token_ids: List[int],
         semantic_vector: np.ndarray,
         tenant_id: Optional[str] = None,
-    ) -> Tuple[Optional[np.ndarray], Dict]:
+    ) -> Tuple[Optional[Any], Dict]:
         """
         Main lookup interface.
 
@@ -76,7 +83,11 @@ class SemantiCache:
 
         # 1. HSI lookup
         block, hit_type = self.hsi.lookup(
-            token_ids, semantic_vector, tenant_id=tenant_id
+            token_ids,
+            semantic_vector,
+            tenant_id=tenant_id,
+            enable_semantic=self.enable_semantic,
+            enforce_access=self.enable_til,
         )
 
         if block is None:
@@ -98,10 +109,19 @@ class SemantiCache:
             )
 
         # 3. QBR decision
-        decision: ReuseDecision = self.qbr.decide(
-            similarity_score=similarity,
-            hit_type=hit_type,
-        )
+        if self.enable_qbr:
+            decision: ReuseDecision = self.qbr.decide(
+                similarity_score=similarity,
+                hit_type=hit_type,
+            )
+        else:
+            decision = ReuseDecision(
+                allow_reuse=True,
+                similarity_score=similarity,
+                quality_estimate=1.0,
+                threshold_used=0.0,
+                reason="qbr_disabled",
+            )
 
         if not decision.allow_reuse:
             latency_ms = (time.perf_counter() - t0) * 1000
@@ -115,12 +135,12 @@ class SemantiCache:
             }
 
         # 4. TIL access check
-        if not self.til.check_access(
-            block_id=block.block_id,
-            block_sensitivity=block.sensitivity,
-            block_tenant_id=block.tenant_id,
-            requesting_tenant_id=tenant_id,
-        ):
+        if self.enable_til and not self.til.check_access(
+                block_id=block.block_id,
+                block_sensitivity=block.sensitivity,
+                block_tenant_id=block.tenant_id,
+                requesting_tenant_id=tenant_id,
+            ):
             latency_ms = (time.perf_counter() - t0) * 1000
             return None, {
                 "hit_type": hit_type,
@@ -134,6 +154,16 @@ class SemantiCache:
         kv_data, storage_tier = self.tsm.fetch(block.block_id)
 
         latency_ms = (time.perf_counter() - t0) * 1000
+
+        if kv_data is None:
+            return None, {
+                "hit_type": hit_type,
+                "similarity": similarity,
+                "decision": "storage_miss",
+                "storage_tier": "miss",
+                "latency_ms": latency_ms,
+                "block_id": block.block_id,
+            }
 
         info = {
             "hit_type": hit_type,
@@ -154,14 +184,19 @@ class SemantiCache:
         kv_data: Any,
         tenant_id: Optional[str] = None,
         context_label: Optional[str] = None,
-        kv_size_gb: float = 0.001,
+        kv_size_gb: Optional[float] = None,
+        prefill_cost_ms: float = 0.0,
     ) -> str:
         """Store newly computed KV block in all indexes."""
-        sensitivity = self.til.classify_block(
-            block_id="",
-            token_ids=token_ids,
-            context_label=context_label,
-            tenant_id=tenant_id,
+        sensitivity = (
+            self.til.classify_block(
+                block_id="",
+                token_ids=token_ids,
+                context_label=context_label,
+                tenant_id=tenant_id,
+            )
+            if self.enable_til
+            else "public"
         )
 
         block_id = self.hsi.insert(
@@ -172,10 +207,29 @@ class SemantiCache:
             sensitivity=sensitivity,
         )
 
-        self.til.register_block(block_id, sensitivity, tenant_id)
-        self.tsm.store(block_id, kv_data, size_gb=kv_size_gb)
+        if self.enable_til:
+            self.til.register_block(block_id, sensitivity, tenant_id)
+        self.tsm.store(
+            block_id,
+            kv_data,
+            size_gb=kv_size_gb,
+            prefill_cost_ms=prefill_cost_ms,
+        )
 
         return block_id
+
+    def _handle_final_evict(self, block_id: str) -> None:
+        block = self.hsi.blocks.get(block_id)
+        if block is not None and self.enable_til:
+            self.til.unregister_block(
+                block_id,
+                block.sensitivity,
+                block.tenant_id,
+            )
+        self.hsi.remove(block_id)
+
+    def close(self) -> None:
+        self.tsm.close()
 
     def get_stats(self) -> Dict:
         """Aggregate statistics from all components."""

@@ -70,10 +70,16 @@ def legend_patches():
     return [mpatches.Patch(fc=CL[i], ec='black', hatch=HL[i], linewidth=0.9,
                            label=LABELS[i]) for i in range(4)]
 
-def arrow(ax, x1, y1, x2, y2, color='#555555', lw=1.3):
+def arrow(ax, x1, y1, x2, y2, color='#4A4A4A', lw=1.15, ms=10):
     ax.annotate('', xy=(x2, y2), xytext=(x1, y1),
                 arrowprops=dict(arrowstyle='->', color=color,
-                                lw=lw, mutation_scale=11))
+                                lw=lw, mutation_scale=ms,
+                                shrinkA=0, shrinkB=0),
+                zorder=4)
+
+def line(ax, x1, y1, x2, y2, color='#4A4A4A', lw=1.15):
+    ax.plot([x1, x2], [y1, y2], color=color, lw=lw,
+            solid_capstyle='round', zorder=4)
 
 def circle_num(ax, x, y, num, r=0.12, fontsize=8):
     c = plt.Circle((x, y), r, fc='#333333', ec='black', lw=0.8, zorder=5)
@@ -100,72 +106,79 @@ def fancy_box(ax, x, y, w, h, label, sub='',
 # Fig 1 — Motivation: Pipeline
 # ═══════════════════════════════════════════════════════════════════
 def fig_motivation():
-    """Pipeline figure — single-column vertical layout (original style)."""
-    fig = plt.figure(figsize=(3.5, 4.5))
-    ax = fig.add_axes([0.04, 0.02, 0.92, 0.96])
-    ax.set_xlim(0, 10); ax.set_ylim(4.1, 17.0); ax.axis('off')
+    """Motivating comparison between exact-prefix and semantic KV reuse."""
+    fig = plt.figure(figsize=(3.55, 4.55))
+    ax = fig.add_axes([0.02, 0.012, 0.96, 0.976])
+    ax.set_xlim(0, 10); ax.set_ylim(2.00, 13.1); ax.axis('off')
 
-    # ── Row 1: Multi-Tenant LLM Requests ──────────────────────────
-    ax.text(5.0, 16.55, 'Multi-Tenant LLM Requests',
-            ha='center', va='bottom', fontsize=9.5, fontweight='bold')
-    p = FancyBboxPatch((0.15, 14.60), 9.70, 1.85,
-                       boxstyle='round,pad=0.05',
-                       fc='white', ec='black', lw=1.1, linestyle='dashed', zorder=1)
-    ax.add_patch(p)
-    fancy_box(ax, 0.30, 14.72, 2.90, 1.60, 'Tenant A', 'RAG queries',
-              fc='#F0F4FF', fontsize=8.5)
-    fancy_box(ax, 3.55, 14.72, 2.90, 1.60, 'Tenant B', 'Chat queries',
-              fc='#F0F4FF', fontsize=8.5)
-    fancy_box(ax, 6.80, 14.72, 3.05, 1.60, 'Tenant C \u2026', '',
-              fc='#F0F4FF', fontsize=8.5, bold=False)
+    ax.text(5.0, 12.83, 'Same Intent, Different Tokens',
+            ha='center', va='center', fontsize=11.2, fontweight='bold')
 
-    # ── Arrow: Tenants → SemantiCache ─────────────────────────────
-    arrow(ax, 5.0, 14.60, 5.0, 13.80)
-    ax.text(5.4, 14.20, 'requests', ha='left', va='center',
-            fontsize=7.0, color='#444')
+    fancy_box(ax, 0.35, 11.25, 9.30, 1.05, 'Tenant A - Request 1',
+              '"Summarize the termination clauses"',
+              fc='#F4F7FC', fontsize=8.8, subfontsize=7.8, lw=1.15)
+    fancy_box(ax, 0.35, 9.88, 9.30, 1.05, 'Tenant A - Request 2',
+              '"What are the exit provisions?"',
+              fc='#F4F7FC', fontsize=8.8, subfontsize=7.8, lw=1.15)
+    arrow(ax, 5.0, 11.23, 5.0, 10.95, lw=1.05, ms=8)
+    ax.text(2.55, 9.66, 'low lexical overlap',
+            ha='center', va='center', fontsize=7.0, style='italic',
+            color='#333333', bbox=dict(fc='white', ec='none', pad=0.2))
+    ax.text(7.15, 9.66, 'semantic similarity $\\geq\\tau$',
+            ha='center', va='center', fontsize=7.0, style='italic',
+            color='#333333', bbox=dict(fc='white', ec='none', pad=0.2))
 
-    # ── Row 2: SemantiCache core ───────────────────────────────────
-    p2 = FancyBboxPatch((0.15, 9.35), 9.70, 4.35,
-                        boxstyle='round,pad=0.05',
-                        fc='#EBF0FA', ec='#3A5FA0', lw=1.5,
-                        linestyle='dashed', zorder=1)
-    ax.add_patch(p2)
-    ax.text(5.0, 13.60, 'SemantiCache',
-            ha='center', fontsize=11, fontweight='bold', color='#1A2A6C')
+    # Exact-prefix baseline exposes the missed opportunity.
+    fancy_box(ax, 0.35, 7.90, 4.10, 1.18, 'Exact Prefix Cache',
+              r'token hash differs  $\rightarrow$  MISS',
+              fc='#FBE7E5', ec='#9E4A42', fontsize=9.0,
+              subfontsize=7.4, lw=1.25)
+    arrow(ax, 1.65, 9.86, 1.65, 9.10, lw=1.1, ms=9)
 
-    # HSI  |  QBR (side by side)
-    fancy_box(ax, 0.40, 11.50, 4.25, 1.80, 'HSI',
-              'Radix Tree + LSH', fc='#D8E4F8', fontsize=10, subfontsize=6.5)
-    fancy_box(ax, 5.35, 11.50, 4.25, 1.80, 'QBR',
-              r'$\tau$-gate, $\tau$=0.85', fc='#D8E4F8', fontsize=10, subfontsize=6.5)
-    # ① ② circles
-    arrow(ax, 2.52, 11.50, 2.52, 11.22); circle_num(ax, 2.52, 11.10, 1, r=0.14)
-    arrow(ax, 4.65, 12.40, 5.35, 12.40); circle_num(ax, 5.08, 12.40, 2, r=0.14)
+    # SemantiCache decision path.
+    core = FancyBboxPatch((4.78, 7.55), 4.87, 1.88,
+                          boxstyle='round,pad=0.05',
+                          fc='#EAF1FB', ec='#315F9E', lw=1.35, zorder=1)
+    ax.add_patch(core)
+    ax.text(7.215, 9.18, 'SemantiCache',
+            ha='center', va='center', fontsize=10.2, fontweight='bold',
+            color='#173F78', bbox=dict(fc='#EAF1FB', ec='none', pad=0.3))
 
-    # TSM
-    fancy_box(ax, 0.40, 10.08, 9.20, 1.20, 'TSM',
-              'L1: HBM  |  L2: DRAM  |  L3: NVMe SSD',
-              fc='#C8D8F0', fontsize=9.5)
-    arrow(ax, 5.0, 10.08, 5.0, 9.82); circle_num(ax, 5.0, 9.68, 3, r=0.14)
+    module_x = [4.98, 6.13, 7.28, 8.43]
+    module_names = ['TIL', 'HSI', 'QBR', 'TSM']
+    module_subs = ['authorize', 'Exact/LSH', r'$\sigma\geq\tau$', 'L1/L2/L3']
+    for i, (x, name, sub) in enumerate(zip(module_x, module_names, module_subs)):
+        fancy_box(ax, x, 7.82, 1.02, 0.92, name, sub,
+                  fc='white', ec='#4B5E78', fontsize=8.4,
+                  subfontsize=6.2, lw=1.0)
+        if i < 3:
+            arrow(ax, x + 1.03, 8.28, module_x[i + 1] - 0.03, 8.28,
+                  lw=1.0, ms=8)
+    arrow(ax, 8.65, 9.86, 8.65, 9.45, lw=1.0, ms=8)
 
-    # ── Arrow: SemantiCache → LLM Engine ─────────────────────────
-    arrow(ax, 5.0, 9.35, 5.0, 8.55)
-    ax.text(5.4, 8.95, 'hit\u2192skip', ha='left', va='center',
-            fontsize=7.0, color='#444')
+    # Two explicit outcomes make the benefit and fallback semantics visible.
+    fancy_box(ax, 0.55, 5.68, 3.75, 1.16, 'Miss Path',
+              r'full prefill  $\rightarrow$  admit new KV',
+              fc='#F9EEDC', ec='#9A7241', fontsize=9.0,
+              subfontsize=7.2, lw=1.2)
+    fancy_box(ax, 5.70, 5.68, 3.75, 1.16, 'Approved Hit',
+              r'fetch KV  $\rightarrow$  skip prefill',
+              fc='#E2F2E8', ec='#3F7D5C', fontsize=9.0,
+              subfontsize=7.2, lw=1.2)
+    arrow(ax, 2.40, 7.88, 2.40, 6.86, color='#8B554D', lw=1.15, ms=9)
+    arrow(ax, 8.94, 7.80, 8.94, 6.86, color='#3F7D5C', lw=1.15, ms=9)
 
-    # ── Row 3: LLM Engine ─────────────────────────────────────────
-    fancy_box(ax, 1.50, 7.00, 7.00, 1.45, 'LLM Engine',
-              'prefill on miss only', fc='#F8F0E0', fontsize=10)
+    # Both paths converge on the same decoder interface.
+    fancy_box(ax, 1.10, 3.63, 7.80, 1.10, 'LLM Decoder',
+              'fresh response under current decoding policy',
+              fc='#F4F4F4', ec='#444444', fontsize=9.8,
+              subfontsize=7.4, lw=1.25)
+    arrow(ax, 2.40, 5.66, 3.75, 4.75, lw=1.05, ms=8)
+    arrow(ax, 7.60, 5.66, 6.25, 4.75, lw=1.05, ms=8)
 
-    # ── TIL — full-width at bottom ────────────────────────────────
-    fancy_box(ax, 0.40, 5.50, 9.20, 1.30, 'TIL',
-              'Tenant Isolation  (leakage = 0%)', fc='#D8E4F8', fontsize=9.5)
-
-    # ── Response ──────────────────────────────────────────────────
-    arrow(ax, 5.0, 5.50, 5.0, 4.80)
-    ax.text(5.0, 4.60, 'Response', ha='center', va='top',
-            fontsize=9, style='italic')
-
+    arrow(ax, 5.0, 3.62, 5.0, 2.75, lw=1.15, ms=9)
+    ax.text(5.0, 2.43, 'Response', ha='center', va='center',
+            fontsize=9.5, style='italic')
     save(fig, 'fig1_motivation')
 
 
@@ -201,126 +214,130 @@ def fig_hitrate():
 # Fig 2 — Architecture framework
 # ═══════════════════════════════════════════════════════════════════
 def fig_architecture():
-    fig, ax = plt.subplots(figsize=(10.0, 6.4))
-    ax.set_xlim(0, 10); ax.set_ylim(0.45, 8.2); ax.axis('off')
+    """Compact double-column architecture with a fully explicit request path."""
+    fig, ax = plt.subplots(figsize=(11.4, 5.15))
+    ax.set_xlim(0, 12); ax.set_ylim(0.35, 6.65); ax.axis('off')
 
-    # Top: LLM Engine
-    fancy_box(ax, 0.8, 7.40, 8.4, 0.60,
-              'LLM Serving Engine  (vLLM-compatible)',
-              fc='white', ec='black', lw=1.5, fontsize=10.5)
-    arrow(ax, 2.8, 7.40, 2.8, 6.78, lw=1.4)
-    ax.text(2.2, 7.08, 'Request', fontsize=8.5)
-    arrow(ax, 7.2, 6.78, 7.2, 7.40, lw=1.4)
-    ax.text(7.4, 7.08, 'KV Block / Miss', fontsize=8.5)
+    fancy_box(ax, 0.65, 5.86, 11.00, 0.58,
+              'LLM Serving Engine',
+              fc='white', ec='#222222', lw=1.5, fontsize=10.5)
 
-    # SemantiCache Core outer box
-    outer = FancyBboxPatch((0.35, 1.40), 9.30, 5.25,
+
+    outer = FancyBboxPatch((0.18, 0.62), 11.64, 4.86,
                            boxstyle='round,pad=0.06',
-                           fc='#EBF0FA', ec='#3A5FA0',
-                           lw=2.0, linestyle='dashed', zorder=1)
+                           fc='#EEF3FB', ec='#315F9E',
+                           lw=1.8, linestyle='dashed', zorder=1)
     ax.add_patch(outer)
-    ax.text(5.0, 6.76, 'SemantiCache Core',
-            ha='center', fontsize=11.5, fontweight='bold',
-            color='black', zorder=5,
-            bbox=dict(fc='#EBF0FA', ec='none', pad=2, alpha=1.0))
+    ax.text(6.0, 5.48, 'SemantiCache Core',
+            ha='center', va='center', fontsize=11.5, fontweight='bold',
+            color='#173F78', zorder=6,
+            bbox=dict(fc='#EEF3FB', ec='none', pad=1.5))
 
-    # TIL sidebar
-    til = FancyBboxPatch((0.50, 1.54), 1.28, 4.90,
+    # TIL: authorization data and the candidate mask.
+    til = FancyBboxPatch((0.40, 0.88), 1.95, 4.30,
                          boxstyle='round,pad=0.04',
-                         fc='#CBD8EE', ec='#3A5FA0', lw=1.3, zorder=2)
+                         fc='#D9E5F5', ec='#315F9E', lw=1.35, zorder=2)
     ax.add_patch(til)
-    ax.text(1.14, 6.24, 'TIL', ha='center', va='center',
-            fontsize=9, fontweight='bold', color='black', zorder=3)
-    ax.text(1.14, 5.96, 'Tenant Isolation\nLayer',
-            ha='center', va='center', fontsize=6.5, color='black', zorder=3)
-    fancy_box(ax, 0.57, 5.04, 1.14, 0.72, 'Public Pool',
-              fc='white', ec='#555', fontsize=7.5, bold=False)
-    fancy_box(ax, 0.57, 4.10, 1.14, 0.72, 'Private\nSub-trees',
-              fc='white', ec='#555', fontsize=7.5, bold=False)
-    fancy_box(ax, 0.57, 1.65, 1.14, 2.20, 'Permission\nBitmap',
-              fc='white', ec='#555', fontsize=7.5, bold=False)
+    ax.text(1.375, 4.88, 'TIL', ha='center', fontsize=11.0,
+            fontweight='bold', zorder=3)
+    ax.text(1.375, 4.57, 'Tenant Isolation', ha='center',
+            fontsize=9.5, zorder=3)
+    fancy_box(ax, 0.57, 3.55, 1.61, 0.72, 'Public Pool', 'shareable',
+              fc='white', ec='#52657F', fontsize=10.0, subfontsize=8.5, lw=1.0)
+    fancy_box(ax, 0.57, 2.55, 1.61, 0.72, 'Private Pool', 'owner match',
+              fc='white', ec='#52657F', fontsize=10.0, subfontsize=8.5, lw=1.0)
+    fancy_box(ax, 0.57, 1.20, 1.61, 0.98, 'Metadata',
+              'label + owner + tier',
+              fc='white', ec='#52657F', fontsize=10.0, subfontsize=8.5, lw=1.0)
 
-    # HSI block
-    hsi_c = FancyBboxPatch((2.05, 3.80), 3.35, 2.78,
-                           boxstyle='round,pad=0.04',
-                           fc='#D0DCEE', ec='#3A5FA0', lw=1.3, zorder=2)
-    ax.add_patch(hsi_c)
-    ax.text(3.725, 6.46, 'HSI \u2014 Hierarchical Semantic Index',
-            ha='center', fontsize=9, fontweight='bold',
-            color='black', zorder=3)
-    fancy_box(ax, 2.14, 3.96, 1.48, 1.92,
-              'Exact Layer',
-              'Radix Tree, O(L)\nSHA-256 hash',
-              fc='white', ec='#666', fontsize=8.5, subfontsize=7.8)
-    fancy_box(ax, 3.82, 3.96, 1.48, 1.92,
-              'LSH Layer',
-              'SimHash 64-bit\nTop-k \u00b7 O(1) lookup',
-              fc='white', ec='#666', fontsize=8.5, subfontsize=7.8)
-    arrow(ax, 3.62, 4.92, 3.82, 4.92, lw=1.1)
-    ax.text(3.72, 5.12, 'miss', ha='center', fontsize=7.5, color='black')
+    # HSI: exact first, semantic only on an exact miss.
+    hsi = FancyBboxPatch((2.68, 2.72), 3.38, 2.46,
+                         boxstyle='round,pad=0.04',
+                         fc='#D9E5F5', ec='#315F9E', lw=1.35, zorder=2)
+    ax.add_patch(hsi)
+    ax.text(4.37, 4.88, 'HSI - Hierarchical Index',
+            ha='center', fontsize=11.0, fontweight='bold', zorder=3)
+    fancy_box(ax, 2.86, 3.18, 1.40, 1.25, 'Exact',
+              'SHA-256\nhash map',
+              fc='white', ec='#52657F', fontsize=10.0, subfontsize=8.5, lw=1.0)
+    fancy_box(ax, 4.48, 3.18, 1.40, 1.25, 'Semantic',
+              'SimHash LSH\ncosine top-$k$',
+              fc='white', ec='#52657F', fontsize=10.0, subfontsize=8.5, lw=1.0)
+    arrow(ax, 4.27, 3.80, 4.46, 3.80, lw=1.10, ms=8)
+    ax.text(4.36, 4.03, 'miss', ha='center', fontsize=9.8)
 
-    # QBR block
-    qbr_c = FancyBboxPatch((5.60, 3.80), 3.65, 2.78,
-                           boxstyle='round,pad=0.04',
-                           fc='#D0DCEE', ec='#3A5FA0', lw=1.3, zorder=2)
-    ax.add_patch(qbr_c)
-    ax.text(7.425, 6.46, 'QBR \u2014 Quality-Bounded Reuse',
-            ha='center', fontsize=9, fontweight='bold',
-            color='black', zorder=3)
-    fancy_box(ax, 5.70, 3.96, 1.55, 1.92,
-              'Similarity Gate',
-              'cos(E(p),E(p\'))>=tau\ntau=0.85 (default)',
-              fc='white', ec='#666', fontsize=8.5, subfontsize=7.8)
-    fancy_box(ax, 7.52, 3.96, 1.60, 1.92,
-              'Quality Monitor',
-              'BERTScore F1\nAdaptive \u03c4 window',
-              fc='white', ec='#666', fontsize=8.5, subfontsize=7.8)
-    arrow(ax, 7.25, 4.92, 7.52, 4.92, lw=1.1)
+    # QBR: online decision plus a monitoring hook.
+    qbr = FancyBboxPatch((6.38, 2.72), 2.56, 2.46,
+                         boxstyle='round,pad=0.04',
+                         fc='#D9E5F5', ec='#315F9E', lw=1.35, zorder=2)
+    ax.add_patch(qbr)
+    ax.text(7.66, 4.88, 'QBR - Quality Gate',
+            ha='center', fontsize=11.0, fontweight='bold', zorder=3)
+    fancy_box(ax, 6.62, 3.60, 2.08, 0.82, 'Similarity Decision',
+              r'$\cos(E(p),E(p^\prime))\geq\tau$',
+              fc='white', ec='#52657F', fontsize=10.0, subfontsize=8.8, lw=1.0)
+    fancy_box(ax, 6.62, 2.95, 2.08, 0.48, 'Quality Monitor',
+              'sampled BERTScore',
+              fc='white', ec='#52657F', fontsize=9.5, subfontsize=8.5, lw=1.0)
 
-    # TSM block
-    tsm_c = FancyBboxPatch((2.05, 1.54), 7.50, 2.08,
-                           boxstyle='round,pad=0.04',
-                           fc='#C8D4EC', ec='#3A5FA0', lw=1.5, zorder=2)
-    ax.add_patch(tsm_c)
-    ax.text(5.0, 3.50, 'TSM — Tiered Storage Manager',
-            ha='center', fontsize=9, fontweight='bold', color='black', zorder=5)
-    fancy_box(ax, 2.14, 1.68, 2.18, 1.68,
-              'L1  GPU HBM',
-              '~2 TB/s · hot KV blocks\n+ HSI metadata',
-              fc='white', ec='#666', fontsize=8.5, subfontsize=7.8)
-    fancy_box(ax, 4.62, 1.68, 2.18, 1.68,
-              'L2  CPU DRAM',
-              '~50 GB/s · warm blocks\nPCIe 4.0',
-              fc='white', ec='#666', fontsize=8.5, subfontsize=7.8)
-    fancy_box(ax, 7.00, 1.68, 2.42, 1.68,
-              'L3  NVMe SSD',
-              '~7 GB/s · cold blocks\nTB-scale cap.',
-              fc='white', ec='#666', fontsize=8.5, subfontsize=7.8)
-    arrow(ax, 4.32, 2.70, 4.62, 2.70, lw=1.2)
-    ax.text(4.47, 2.88, 'demote', ha='center', fontsize=7, color='black')
-    arrow(ax, 4.62, 2.36, 4.32, 2.36, lw=1.2)
-    ax.text(4.47, 2.20, 'promote', ha='center', fontsize=7, color='black')
-    arrow(ax, 6.80, 2.70, 7.00, 2.70, lw=1.2)
-    ax.text(6.90, 2.88, 'demote', ha='center', fontsize=7, color='black')
-    arrow(ax, 7.00, 2.36, 6.80, 2.36, lw=1.2)
-    ax.text(6.90, 2.20, 'promote', ha='center', fontsize=7, color='black')
+    # Decision router makes hit and miss behavior explicit.
+    router = FancyBboxPatch((9.25, 2.72), 2.28, 2.46,
+                            boxstyle='round,pad=0.04',
+                            fc='#D9E5F5', ec='#315F9E', lw=1.35, zorder=2)
+    ax.add_patch(router)
+    ax.text(10.39, 4.88, 'Reuse Decision',
+            ha='center', fontsize=11.0, fontweight='bold', zorder=3)
+    fancy_box(ax, 9.48, 3.64, 1.82, 0.72, 'Approved Hit',
+              'fetch KV block',
+              fc='#E2F2E8', ec='#3F7D5C', fontsize=10.0,
+              subfontsize=8.5, lw=1.0)
+    fancy_box(ax, 9.82, 2.78, 1.45, 0.52, 'Rejected / Miss',
+              'run prefill',
+              fc='#F9EEDC', ec='#9A7241', fontsize=9.0,
+              subfontsize=8.5, lw=1.0)
 
-    # Numbered data-flow circles
-    arrow(ax, 1.85, 5.16, 2.05, 5.16, lw=1.3, color='black')
-    circle_num(ax, 1.74, 5.16, 1, r=0.12)
-    arrow(ax, 1.85, 4.58, 2.05, 4.58, lw=1.3, color='black')
-    circle_num(ax, 1.74, 4.58, 2, r=0.12)
-    arrow(ax, 5.40, 5.16, 5.62, 5.16, lw=1.3, color='black')
-    circle_num(ax, 5.26, 5.16, 3, r=0.12)
-    ax.text(5.26, 4.92, 'top-k', ha='center', fontsize=7, color='black')
-    arrow(ax, 6.85, 4.05, 6.85, 3.64, lw=1.6, color='black')
-    circle_num(ax, 6.85, 4.05, 4, r=0.13)
-    ax.text(7.05, 3.85, 'fetch block', ha='left', va='center', fontsize=7, color='black')
+    # TSM occupies a dense lower band rather than three oversized empty boxes.
+    tsm = FancyBboxPatch((2.68, 0.88), 8.85, 1.55,
+                         boxstyle='round,pad=0.04',
+                         fc='#CBD9EE', ec='#315F9E', lw=1.35, zorder=2)
+    ax.add_patch(tsm)
+    ax.text(7.10, 2.22, 'TSM - Tiered Storage Manager',
+            ha='center', fontsize=11.0, fontweight='bold', zorder=3)
+    tier_specs = [
+        (2.90, 2.35, 'L1  GPU HBM', 'hot blocks  |  ~2 TB/s'),
+        (5.65, 2.35, 'L2  CPU DRAM', 'warm blocks  |  ~50 GB/s'),
+        (8.40, 2.60, 'L3  NVMe SSD', 'cold blocks  |  ~7 GB/s'),
+    ]
+    for x, w, name, sub in tier_specs:
+        fancy_box(ax, x, 1.08, w, 0.88, name, sub,
+                  fc='white', ec='#52657F', fontsize=10.0,
+                  subfontsize=8.5, lw=1.0)
+    arrow(ax, 5.27, 1.70, 5.62, 1.70, lw=1.05, ms=8)
+    arrow(ax, 5.62, 1.35, 5.27, 1.35, lw=1.05, ms=8)
+    arrow(ax, 8.02, 1.70, 8.37, 1.70, lw=1.05, ms=8)
+    arrow(ax, 8.37, 1.35, 8.02, 1.35, lw=1.05, ms=8)
+    ax.text(5.45, 1.88, 'demote', ha='center', fontsize=8.8)
+    ax.text(5.45, 1.16, 'promote', ha='center', fontsize=8.8)
+    ax.text(8.20, 1.88, 'demote', ha='center', fontsize=8.8)
+    ax.text(8.20, 1.16, 'promote', ha='center', fontsize=8.8)
 
-    ax.text(5.0, 0.90,
-            u'\u2460 Request \u2192 TIL \u2192 \u2461 HSI (Exact\u2192LSH) \u2192 '
-            u'\u2462 QBR gate \u2192 \u2463 TSM fetch \u2192 LLM Decoder',
-            ha='center', fontsize=8.5, color='black', style='italic')
+    # Numbered request flow.
+    arrow(ax, 1.38, 5.86, 1.38, 5.20, lw=1.3, ms=10)
+    ax.text(0.82, 5.55, 'request', fontsize=11.0)
+    circle_num(ax, 2.50, 4.02, 1, r=0.15, fontsize=10)
+    arrow(ax, 2.35, 3.78, 2.68, 3.78, lw=1.3, color='black', ms=10)
+    circle_num(ax, 6.20, 4.02, 2, r=0.15, fontsize=10)
+    arrow(ax, 6.06, 3.78, 6.38, 3.78, lw=1.3, color='black', ms=10)
+    circle_num(ax, 9.08, 4.02, 3, r=0.15, fontsize=10)
+    arrow(ax, 8.94, 3.78, 9.25, 3.78, lw=1.3, color='black', ms=10)
+    circle_num(ax, 9.38, 3.12, 4, r=0.15, fontsize=10)
+    arrow(ax, 9.62, 3.62, 9.62, 2.45, lw=1.3, color='black', ms=10)
+
+    # Rejected requests return directly to the serving engine for full prefill.
+    arrow(ax, 11.10, 3.30, 11.10, 5.86, lw=1.20, ms=10)
+    ax.text(10.98, 5.55, 'prefill',
+            fontsize=10.2, color='#8A5E2D',
+            bbox=dict(fc='white', ec='none', pad=0.4, alpha=0.9))
 
     save(fig, 'fig2_architecture')
 
@@ -340,7 +357,7 @@ def fig_end_to_end():
     lms_hit  = pick(lmsys, 'hit_rate', 100)
     lms_ttft = pick(lmsys, 'mean_ttft_ms')
 
-    fig, axes = plt.subplots(1, 2, figsize=(11, 4.2))   # larger for readability
+    fig, axes = plt.subplots(1, 2, figsize=(11, 4.8))   # larger for readability
     w = 0.35; xs = np.arange(4)
 
     titles = ['(a) RAG Synthetic ($n$=1,000)', '(b) LMSYS Real-World ($n$=500)']
@@ -354,30 +371,56 @@ def fig_end_to_end():
         bars = ax.bar(xs, hits, w, color=CL, edgecolor='black', linewidth=0.9, zorder=3)
         for b, h in zip(bars, HL):
             b.set_hatch(h)
-        ax2.plot(xs, ttfts, color='black', marker='D', markersize=6,
-                 linewidth=1.8, linestyle='--', zorder=4, label='TTFT (ms)')
-        ax2.set_ylabel('Mean TTFT (ms)', fontsize=10.5)
+        ax2.plot(xs, ttfts, color='black', marker='D', markersize=7,
+                 linewidth=2.0, linestyle='--', zorder=4, label='TTFT (ms)')
+        ax2.set_ylabel('Mean TTFT (ms)', fontsize=13)
         ax2.set_ylim(20, 52)
-        ax2.tick_params(axis='y', labelsize=10)
-        ax.set_ylabel('Cache Hit Rate (%)', fontsize=10.5)
+        ax2.tick_params(axis='y', labelsize=12)
+        ax.set_ylabel('Cache Hit Rate (%)', fontsize=13)
         ax.set_ylim(0, 120)
         ax.set_xticks(xs)
         ax.set_xticklabels(['No\nCache', 'Exact\nCache', 'Sem-\nShareKV', 'Semanti-\nCache'],
-                           fontsize=9.5)
-        ax.tick_params(axis='y', labelsize=10)
+                           fontsize=12)
+        ax.tick_params(axis='y', labelsize=12)
         ax.yaxis.grid(True, linestyle='--', alpha=0.4, zorder=0)
         ax.set_axisbelow(True)
         # subfigure title below x-axis
-        ax.text(0.5, -0.20, title, transform=ax.transAxes,
-                fontsize=10, fontweight='bold', ha='center', va='top', clip_on=False)
+        ax.text(0.5, -0.22, title, transform=ax.transAxes,
+                fontsize=12, fontweight='bold', ha='center', va='top', clip_on=False)
 
     fig.legend(handles=legend_patches() + [
-        plt.Line2D([0], [0], color='black', marker='D', markersize=5,
+        plt.Line2D([0], [0], color='black', marker='D', markersize=6,
                    linestyle='--', label='TTFT (ms)')
     ], loc='upper center', ncol=5, frameon=False,
-               bbox_to_anchor=(0.5, 1.06), fontsize=9.5)
-    plt.tight_layout(rect=[0, 0.05, 1, 1])
+               bbox_to_anchor=(0.5, 1.06), fontsize=11)
+    plt.tight_layout(rect=[0, 0.06, 1, 1])
     save(fig, 'fig3_end_to_end')
+
+    # ── Also save individual panels for LaTeX \subfigure ──────────
+    for panel_idx, (hits, ttfts, suffix) in enumerate([
+        (rag_hit,  rag_ttft,  'fig3a_rag'),
+        (lms_hit,  lms_ttft,  'fig3b_lmsys'),
+    ]):
+        fig_p, ax_p = plt.subplots(1, 1, figsize=(5.2, 4.4))
+        ax2_p = ax_p.twinx()
+        bars = ax_p.bar(xs, hits, w, color=CL, edgecolor='black', linewidth=0.9, zorder=3)
+        for b, h in zip(bars, HL):
+            b.set_hatch(h)
+        ax2_p.plot(xs, ttfts, color='black', marker='D', markersize=7,
+                   linewidth=2.0, linestyle='--', zorder=4)
+        ax2_p.set_ylabel('Mean TTFT (ms)', fontsize=13)
+        ax2_p.set_ylim(20, 52)
+        ax2_p.tick_params(axis='y', labelsize=12)
+        ax_p.set_ylabel('Cache Hit Rate (%)', fontsize=13)
+        ax_p.set_ylim(0, 120)
+        ax_p.set_xticks(xs)
+        ax_p.set_xticklabels(['No\nCache', 'Exact\nCache', 'Sem-\nShareKV', 'Semanti-\nCache'],
+                             fontsize=12)
+        ax_p.tick_params(axis='y', labelsize=12)
+        ax_p.yaxis.grid(True, linestyle='--', alpha=0.4, zorder=0)
+        ax_p.set_axisbelow(True)
+        plt.tight_layout()
+        save(fig_p, suffix)
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -389,31 +432,33 @@ def fig_tau_sweep():
     hits  = [d['hit_rate']*100 for d in data]
     berts = [d['bertscore']    for d in data]
 
-    fig, ax1 = plt.subplots(figsize=(5.8, 3.6))
+    fig, ax1 = plt.subplots(figsize=(6.8, 4.2))
     bw = 0.038
     bars = ax1.bar(taus, hits, bw, color=C['ours'], edgecolor='black',
                    hatch=H['ours'], linewidth=0.9, label='Hit Rate (%)')
-    ax1.set_xlabel('Reuse Safety Threshold ($\\tau$)', fontsize=10)
-    ax1.set_ylabel('Cache Hit Rate (%)', fontsize=10)
+    ax1.set_xlabel('Reuse Safety Threshold ($\\tau$)', fontsize=14)
+    ax1.set_ylabel('Cache Hit Rate (%)', fontsize=14)
     ax1.set_ylim(60, 105)
     ax1.set_xticks(taus)
-    ax1.set_xticklabels([str(t) for t in taus], fontsize=8.5)
+    ax1.set_xticklabels([str(t) for t in taus], fontsize=12)
+    ax1.tick_params(axis='y', labelsize=12)
     ax1.yaxis.grid(True, linestyle='--', alpha=0.4)
     ax1.set_axisbelow(True)
 
     ax2 = ax1.twinx()
     ax2.plot(taus, berts, color='black', marker='o', markersize=6,
              linewidth=2.0, label='BERTScore')
-    ax2.set_ylabel('Generation Quality (BERTScore)', fontsize=10)
+    ax2.set_ylabel('Generation Quality (BERTScore)', fontsize=14)
     ax2.set_ylim(0.800, 0.895)
+    ax2.tick_params(axis='y', labelsize=12)
     ax2.grid(False)
 
     ax1.axvline(0.85, color='gray', linestyle=':', linewidth=1.2)
-    ax1.text(0.855, 103, 'default $\\tau$', ha='left', fontsize=7.5, color='#555')
+    ax1.text(0.855, 103, 'default $\\tau$', ha='left', fontsize=11, color='#555')
 
     h1, l1 = ax1.get_legend_handles_labels()
     h2, l2 = ax2.get_legend_handles_labels()
-    ax1.legend(h1+h2, l1+l2, loc='upper left', frameon=True, framealpha=0.9, fontsize=8.5)
+    ax1.legend(h1+h2, l1+l2, loc='upper left', frameon=True, framealpha=0.9, fontsize=12)
     plt.tight_layout()
     save(fig, 'fig4_tau_sweep')
 
@@ -433,10 +478,11 @@ def fig_scalability():
     axes[0].plot(x, hits, color='#2255AA', marker='o', markersize=3.5,
                  linewidth=2.0, label='SemantiCache')
     axes[0].fill_between(x, hits, 50, alpha=0.12, color='#BBCCFF')
-    axes[0].set_xlabel('Number of Requests', fontsize=10)
-    axes[0].set_ylabel('Cumulative Hit Rate (%)', fontsize=10)
+    axes[0].set_xlabel('Number of Requests', fontsize=12)
+    axes[0].set_ylabel('Cumulative Hit Rate (%)', fontsize=12)
     axes[0].set_ylim(50, 100); axes[0].set_xlim(0, 1050)
-    axes[0].legend(loc='lower right', frameon=True, framealpha=0.9)
+    axes[0].tick_params(labelsize=10.5)
+    axes[0].legend(loc='lower right', frameon=True, framealpha=0.9, fontsize=10.5)
     axes[0].yaxis.grid(True, linestyle='--', alpha=0.4)
 
     axes[1].plot(x, ttft_n, color='#CC3333', marker='s', markersize=3.5,
@@ -445,10 +491,11 @@ def fig_scalability():
                  linewidth=2.0, label='SemantiCache')
     axes[1].fill_between(x, ttft_n, ttft_s, alpha=0.15, color='#BBCCFF',
                          label='TTFT savings')
-    axes[1].set_xlabel('Number of Requests', fontsize=10)
-    axes[1].set_ylabel('Mean TTFT (ms)', fontsize=10)
+    axes[1].set_xlabel('Number of Requests', fontsize=12)
+    axes[1].set_ylabel('Mean TTFT (ms)', fontsize=12)
     axes[1].set_ylim(28, 46); axes[1].set_xlim(0, 1050)
-    axes[1].legend(loc='upper right', frameon=True, framealpha=0.9)
+    axes[1].tick_params(labelsize=10.5)
+    axes[1].legend(loc='upper right', frameon=True, framealpha=0.9, fontsize=10.5)
     axes[1].yaxis.grid(True, linestyle='--', alpha=0.4)
 
     # subfigure labels — below each panel, centered (matches fig1 style)
@@ -458,6 +505,38 @@ def fig_scalability():
 
     plt.tight_layout()
     save(fig, 'fig5_scalability')
+
+    # ── Also save individual panels for LaTeX \subfigure ──────────
+    # Panel (a): cumulative hit rate
+    fig_a, ax_a = plt.subplots(1, 1, figsize=(4.8, 3.6))
+    ax_a.plot(x, hits, color='#2255AA', marker='o', markersize=3.5,
+              linewidth=2.0, label='SemantiCache')
+    ax_a.fill_between(x, hits, 50, alpha=0.12, color='#BBCCFF')
+    ax_a.set_xlabel('Number of Requests', fontsize=12)
+    ax_a.set_ylabel('Cumulative Hit Rate (%)', fontsize=12)
+    ax_a.set_ylim(50, 100); ax_a.set_xlim(0, 1050)
+    ax_a.tick_params(labelsize=10.5)
+    ax_a.legend(loc='lower right', frameon=True, framealpha=0.9, fontsize=10.5)
+    ax_a.yaxis.grid(True, linestyle='--', alpha=0.4)
+    plt.tight_layout()
+    save(fig_a, 'fig5a_hit_rate')
+
+    # Panel (b): TTFT comparison
+    fig_b, ax_b = plt.subplots(1, 1, figsize=(4.8, 3.6))
+    ax_b.plot(x, ttft_n, color='#CC3333', marker='s', markersize=3.5,
+              linewidth=1.8, linestyle='--', label='No Cache')
+    ax_b.plot(x, ttft_s, color='#2255AA', marker='o', markersize=3.5,
+              linewidth=2.0, label='SemantiCache')
+    ax_b.fill_between(x, ttft_n, ttft_s, alpha=0.15, color='#BBCCFF',
+                      label='TTFT savings')
+    ax_b.set_xlabel('Number of Requests', fontsize=12)
+    ax_b.set_ylabel('Mean TTFT (ms)', fontsize=12)
+    ax_b.set_ylim(28, 46); ax_b.set_xlim(0, 1050)
+    ax_b.tick_params(labelsize=10.5)
+    ax_b.legend(loc='upper right', frameon=True, framealpha=0.9, fontsize=10.5)
+    ax_b.yaxis.grid(True, linestyle='--', alpha=0.4)
+    plt.tight_layout()
+    save(fig_b, 'fig5b_ttft')
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -470,7 +549,7 @@ def fig_ablation():
     sem   = [d['semantic_hit_rate']*100 for d in data]
     total = [d['hit_rate']*100          for d in data]
 
-    fig, ax = plt.subplots(figsize=(7.5, 4.4))
+    fig, ax = plt.subplots(figsize=(5.6, 4.0))
     xs = np.arange(5); w = 0.48
 
     b1 = ax.bar(xs, exact, w, label='Exact Hit', color=C['exact'],
@@ -479,18 +558,19 @@ def fig_ablation():
                 color=C['ours'], edgecolor='black', hatch=H['ours'], linewidth=0.9)
 
     for i, t in enumerate(total):
-        ax.text(xs[i], t+1.2, f'{t:.0f}%',
-                ha='center', va='bottom', fontsize=10, fontweight='bold')
+        ax.text(xs[i], t+1.4, f'{t:.0f}%',
+                ha='center', va='bottom', fontsize=14.0, fontweight='bold')
 
-    ax.set_xticks(xs); ax.set_xticklabels(names, fontsize=10)
-    ax.set_ylabel('Cache Hit Rate (%)', fontsize=11)
-    ax.set_ylim(0, 105)
-    # Legend placed below the plot — never overlaps bars
-    ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.14),
-              ncol=2, frameon=True, framealpha=0.95, fontsize=10,
-              handlelength=1.8, handleheight=1.0)
+    ax.set_xticks(xs); ax.set_xticklabels(names, fontsize=13.0)
+    ax.tick_params(axis='y', labelsize=13.0)
+    ax.set_ylabel('Cache Hit Rate (%)', fontsize=14.0)
+    ax.set_ylim(0, 112)
+    # Keep the legend above the plot so the visual reads top-to-bottom.
+    ax.legend(loc='lower center', bbox_to_anchor=(0.5, 1.01),
+              ncol=2, frameon=False, fontsize=13.0,
+              handlelength=1.7, handleheight=1.0, columnspacing=1.6)
     ax.yaxis.grid(True, linestyle='--', alpha=0.4); ax.set_axisbelow(True)
-    plt.tight_layout(rect=[0, 0.06, 1, 1])
+    plt.tight_layout()
     save(fig, 'fig6_ablation')
 
 
@@ -510,15 +590,36 @@ def fig_overhead():
     for t, fc, h, lbl in zip(times, fcs, hats, comps):
         ax.barh('Overhead', t, left=left, color=fc, hatch=h,
                 edgecolor='black', linewidth=0.9, label=lbl)
-        if t > 0.05:
+        if t > 0.35:
             ax.text(left + t/2, 0, f'{t:.3f}ms',
-                    ha='center', va='center', fontsize=7.8, fontweight='bold')
+                    ha='center', va='center', fontsize=10, fontweight='bold')
+        elif t > 0.05:
+            ax.text(left + t/2, 0.52, f'{t:.3f} ms',
+                    ha='center', va='center', fontsize=10, fontweight='bold',
+                    bbox=dict(fc='white', ec='none', pad=0.6, alpha=0.95))
         left += t
-    ax.set_xlabel('Latency (ms)', fontsize=10)
+    exact_mid = times[0] / 2
+    qbr_mid = sum(times[:-1]) + times[-1] / 2
+    ax.annotate(f'Exact Hash\n{times[0]:.3f} ms',
+                xy=(exact_mid, 0.39), xytext=(0.85, 0.72),
+                ha='center', va='center', fontsize=9.5, fontweight='bold',
+                bbox=dict(fc='white', ec='none', pad=0.6, alpha=0.95),
+                arrowprops=dict(arrowstyle='->', color='black', lw=0.9,
+                                shrinkA=1, shrinkB=1))
+    ax.annotate(f'QBR Check\n{times[-1]:.3f} ms',
+                xy=(qbr_mid, 0.39), xytext=(10.00, 0.72),
+                ha='center', va='center', fontsize=9.5, fontweight='bold',
+                bbox=dict(fc='white', ec='none', pad=0.6, alpha=0.95),
+                arrowprops=dict(arrowstyle='->', color='black', lw=0.9,
+                                shrinkA=1, shrinkB=1))
+    ax.set_xlabel('Latency (ms)', fontsize=12)
     ax.set_xlim(0, 11.0); ax.set_yticks([])
-    ax.text(left+0.15, 0, f'Total:\n{left:.2f} ms', va='center', fontsize=9, fontweight='bold')
+    ax.tick_params(axis='x', labelsize=10.5)
+    ax.set_ylim(-0.72, 1.00)
+    ax.text(left+0.32, 0, f'Total:\n{left:.2f} ms',
+            va='center', fontsize=10.5, fontweight='bold')
     ax.legend(loc='upper center', ncol=4, frameon=False,
-              bbox_to_anchor=(0.5, 1.42), fontsize=8.5)
+              bbox_to_anchor=(0.5, 1.42), fontsize=10.5)
     ax.xaxis.grid(True, linestyle='--', alpha=0.4)
     plt.tight_layout()
     save(fig, 'fig7_overhead')

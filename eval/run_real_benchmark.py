@@ -344,6 +344,11 @@ def run_semanticache(
     enable_til: bool = True,
     enable_semantic: bool = True,
     collect_outputs: bool = False,
+    storage_policy: str = "benefit",
+    gpu_capacity_gb: float = 20.0,
+    cpu_capacity_gb: float = 64.0,
+    ssd_capacity_gb: float = 200.0,
+    ssd_path: Optional[str] = None,
 ) -> Dict:
     """
     SemantiCache: HSI + QBR + TSM + TIL.
@@ -352,20 +357,23 @@ def run_semanticache(
     """
     import torch
 
+    effective_policy = storage_policy if enable_tsm else "single_lru"
     storage_config = StorageConfig(
-        gpu_capacity_gb=20.0,
-        cpu_capacity_gb=64.0,
-        ssd_capacity_gb=200.0,
+        gpu_capacity_gb=gpu_capacity_gb,
+        cpu_capacity_gb=cpu_capacity_gb if enable_tsm else 0.0,
+        ssd_capacity_gb=ssd_capacity_gb if enable_tsm else 0.0,
+        eviction_policy=effective_policy,
+        device=engine.device,
+        ssd_path=ssd_path,
     )
     system = SemantiCache(
         embedding_dim=128,
-        similarity_threshold=threshold if enable_semantic else 1.1,  # >1 disables semantic
+        similarity_threshold=threshold,
         adaptive_qbr=enable_qbr,
-        storage_config=storage_config if enable_tsm else StorageConfig(
-            gpu_capacity_gb=1000.0,  # no eviction = TSM off
-            cpu_capacity_gb=0.0,
-            ssd_capacity_gb=0.0,
-        ),
+        storage_config=storage_config,
+        enable_semantic=enable_semantic,
+        enable_qbr=enable_qbr,
+        enable_til=enable_til,
     )
 
     # Register tenants (TIL)
@@ -373,14 +381,12 @@ def run_semanticache(
         for i in range(4):
             system.til.register_tenant(f"tenant_{i}")
 
-    # Physical KV store: block_id → (past_kv_cpu, last_token_id)
-    kv_physical: Dict[str, Tuple[Any, int]] = {}
-
     exact_hits = semantic_hits = misses = 0
     ttfts: List[float] = []
     outputs: List[str] = []          # generated texts (if collect_outputs)
     semantic_hit_indices: List[int] = []  # request indices with semantic hits
     per_tenant_latencies: Dict[str, List[float]] = {}  # for Fairness Index
+    hit_by_tier = {"l1": 0, "l2": 0, "l3": 0}
 
     gpu_mem_before = torch.cuda.memory_allocated() / 1e9 if torch.cuda.is_available() else 0.0
 
@@ -388,7 +394,7 @@ def run_semanticache(
         tenant = req["tenant_id"] if enable_til else None
 
         # ── SemantiCache lookup ──────────────────────────
-        _, info = system.lookup(
+        kv_payload, info = system.lookup(
             token_ids=req["input_ids"][0].tolist(),
             semantic_vector=req["semantic_vector"],
             tenant_id=tenant,
@@ -397,10 +403,16 @@ def run_semanticache(
         hit_type = info["hit_type"]
         decision = info["decision"]
 
-        if decision in ("approved",) and info.get("block_id") in kv_physical:
+        if decision == "approved" and kv_payload is not None:
             # Cache hit: inject KV, skip prefill
-            kv_list, last_tok = kv_physical[info["block_id"]]
-            text, ttft = engine.decode_from_kv(kv_list, last_tok, max_new_tokens)
+            text, decode_ttft = engine.decode_from_kv(
+                kv_payload["kv_list"],
+                kv_payload["last_token_id"],
+                max_new_tokens,
+            )
+            ttft = info["latency_ms"] + decode_ttft
+            if info["storage_tier"] in hit_by_tier:
+                hit_by_tier[info["storage_tier"]] += 1
 
             if hit_type == "exact":
                 exact_hits += 1
@@ -409,18 +421,24 @@ def run_semanticache(
                 semantic_hit_indices.append(req_idx)
         else:
             # Cache miss (or rejected by QBR/TIL): full generate
-            kv_list, text, ttft = engine.full_generate(req["input_ids"], max_new_tokens)
+            kv_list, text, prefill_ttft = engine.full_generate(
+                req["input_ids"], max_new_tokens
+            )
+            ttft = info["latency_ms"] + prefill_ttft
             last_tok = req["input_ids"][0, -1].item()
             kv_size = engine.get_kv_size_gb(kv_list)
 
-            block_id = system.store(
+            system.store(
                 token_ids=req["input_ids"][0].tolist(),
                 semantic_vector=req["semantic_vector"],
-                kv_data=None,
+                kv_data={
+                    "kv_list": kv_list,
+                    "last_token_id": last_tok,
+                },
                 tenant_id=tenant,
                 kv_size_gb=kv_size,
+                prefill_cost_ms=prefill_ttft,
             )
-            kv_physical[block_id] = (kv_list, last_tok)
             misses += 1
 
         ttfts.append(ttft)
@@ -435,6 +453,8 @@ def run_semanticache(
 
     result = _make_result("SemantiCache", ttfts, exact_hits, semantic_hits, misses)
     result["system_stats"] = system.get_stats()
+    result["storage_policy"] = effective_policy
+    result["hit_by_tier"] = hit_by_tier
     result["leakage_rate"] = system.til.get_leakage_rate()
     result["fairness_index"] = system.til.get_fairness_index(per_tenant_latencies)
     result["gpu_memory_gb"] = {
@@ -445,6 +465,7 @@ def run_semanticache(
     if collect_outputs:
         result["outputs"] = outputs
         result["semantic_hit_indices"] = semantic_hit_indices
+    system.close()
     return result
 
 
@@ -456,6 +477,10 @@ def run_ablation(
     engine: QwenInferenceEngine,
     requests: List[Dict],
     max_new_tokens: int = 64,
+    gpu_capacity_gb: float = 20.0,
+    cpu_capacity_gb: float = 64.0,
+    ssd_capacity_gb: float = 200.0,
+    ssd_path: Optional[str] = None,
 ) -> List[Dict]:
     """
     Ablation study: toggle each component off one at a time.
@@ -472,9 +497,54 @@ def run_ablation(
     for cfg in configs:
         name = cfg.pop("name")
         logger.info(f"Ablation: {name}")
-        r = run_semanticache(engine, requests, threshold=0.85, max_new_tokens=max_new_tokens, **cfg)
+        r = run_semanticache(
+            engine,
+            requests,
+            threshold=0.85,
+            max_new_tokens=max_new_tokens,
+            storage_policy="benefit",
+            gpu_capacity_gb=gpu_capacity_gb,
+            cpu_capacity_gb=cpu_capacity_gb,
+            ssd_capacity_gb=ssd_capacity_gb,
+            ssd_path=ssd_path,
+            **cfg,
+        )
         r["name"] = name
         results.append(r)
+    return results
+
+
+def run_storage_policy_comparison(
+    engine: QwenInferenceEngine,
+    requests: List[Dict],
+    max_new_tokens: int = 64,
+    gpu_capacity_gb: float = 20.0,
+    cpu_capacity_gb: float = 64.0,
+    ssd_capacity_gb: float = 200.0,
+    ssd_path: Optional[str] = None,
+) -> List[Dict]:
+    """Compare replacement policies over the same cold-start request trace."""
+    configurations = [
+        ("Single-tier LRU", "single_lru"),
+        ("Tiered LRU", "tiered_lru"),
+        ("Benefit-density TSM", "benefit"),
+    ]
+    results = []
+    for name, policy in configurations:
+        logger.info(f"Storage policy: {name}")
+        result = run_semanticache(
+            engine,
+            requests,
+            threshold=0.85,
+            max_new_tokens=max_new_tokens,
+            storage_policy=policy,
+            gpu_capacity_gb=gpu_capacity_gb,
+            cpu_capacity_gb=cpu_capacity_gb,
+            ssd_capacity_gb=ssd_capacity_gb,
+            ssd_path=ssd_path,
+        )
+        result["name"] = name
+        results.append(result)
     return results
 
 
@@ -537,6 +607,10 @@ def run_scalability(
     requests: List[Dict],
     max_new_tokens: int = 64,
     checkpoint_every: int = 50,
+    gpu_capacity_gb: float = 20.0,
+    cpu_capacity_gb: float = 64.0,
+    ssd_capacity_gb: float = 200.0,
+    ssd_path: Optional[str] = None,
 ) -> Dict:
     """
     Scalability study: run SemantiCache and No-Cache on an increasing
@@ -555,9 +629,12 @@ def run_scalability(
     from core.tsm import StorageConfig
 
     storage_config = StorageConfig(
-        gpu_capacity_gb=20.0,
-        cpu_capacity_gb=64.0,
-        ssd_capacity_gb=200.0,
+        gpu_capacity_gb=gpu_capacity_gb,
+        cpu_capacity_gb=cpu_capacity_gb,
+        ssd_capacity_gb=ssd_capacity_gb,
+        eviction_policy="benefit",
+        device=engine.device,
+        ssd_path=ssd_path,
     )
     system = SemantiCache(
         embedding_dim=128,
@@ -568,7 +645,6 @@ def run_scalability(
     for i in range(4):
         system.til.register_tenant(f"tenant_{i}")
 
-    kv_physical: Dict[str, Tuple[Any, int]] = {}
     nc_ttfts_window, sc_ttfts_window = [], []
     checkpoints, sc_hit_rates, sc_ttfts, nc_ttfts = [], [], [], []
     total_hits = 0
@@ -582,28 +658,38 @@ def run_scalability(
 
         # ── SemantiCache ──────────────────────────────────────
         tenant = req["tenant_id"]
-        _, info = system.lookup(
+        kv_payload, info = system.lookup(
             token_ids=req["input_ids"][0].tolist(),
             semantic_vector=req["semantic_vector"],
             tenant_id=tenant,
         )
         decision = info["decision"]
-        if decision == "approved" and info.get("block_id") in kv_physical:
-            kv_list, last_tok = kv_physical[info["block_id"]]
-            _, sc_ttft = engine.decode_from_kv(kv_list, last_tok, max_new_tokens)
+        if decision == "approved" and kv_payload is not None:
+            _, decode_ttft = engine.decode_from_kv(
+                kv_payload["kv_list"],
+                kv_payload["last_token_id"],
+                max_new_tokens,
+            )
+            sc_ttft = info["latency_ms"] + decode_ttft
             total_hits += 1
         else:
-            kv_list, _, sc_ttft = engine.full_generate(req["input_ids"], max_new_tokens)
+            kv_list, _, prefill_ttft = engine.full_generate(
+                req["input_ids"], max_new_tokens
+            )
+            sc_ttft = info["latency_ms"] + prefill_ttft
             last_tok = req["input_ids"][0, -1].item()
             kv_size = engine.get_kv_size_gb(kv_list)
-            block_id = system.store(
+            system.store(
                 token_ids=req["input_ids"][0].tolist(),
                 semantic_vector=req["semantic_vector"],
-                kv_data=None,
+                kv_data={
+                    "kv_list": kv_list,
+                    "last_token_id": last_tok,
+                },
                 tenant_id=tenant,
                 kv_size_gb=kv_size,
+                prefill_cost_ms=prefill_ttft,
             )
-            kv_physical[block_id] = (kv_list, last_tok)
         sc_ttfts_window.append(sc_ttft)
 
         # ── Checkpoint ────────────────────────────────────────
@@ -616,14 +702,17 @@ def run_scalability(
             nc_ttfts_window.clear()
             logger.info(f"  @{i}: hit={total_hits/i*100:.1f}% sc_ttft={sc_ttfts[-1]:.1f}ms nc_ttft={nc_ttfts[-1]:.1f}ms")
 
-    return {
+    result = {
         "checkpoints": checkpoints,
         "semanticache_hit_rate": sc_hit_rates,
         "semanticache_mean_ttft": sc_ttfts,
         "no_cache_mean_ttft": nc_ttfts,
         "total_requests": len(requests),
         "final_hit_rate": total_hits / len(requests) * 100,
+        "system_stats": system.get_stats(),
     }
+    system.close()
+    return result
 
 
 # ════════════════════════════════════════════════════════
@@ -675,7 +764,7 @@ def _print_table(results: List[Dict]) -> None:
 def _save_results(results: List[Dict], path: str) -> None:
     clean = []
     for r in results:
-        cr = {k: v for k, v in r.items() if k not in ("ttft_all_ms", "system_stats")}
+        cr = {k: v for k, v in r.items() if k != "ttft_all_ms"}
         clean.append(cr)
     with open(path, "w") as f:
         json.dump(clean, f, indent=2)
@@ -712,12 +801,25 @@ def main():
                         help="Run τ sweep experiment (quality-efficiency curve)")
     parser.add_argument("--ablation", action="store_true",
                         help="Run ablation study")
+    parser.add_argument(
+        "--storage_policies",
+        action="store_true",
+        help="Compare single LRU, tiered LRU, and benefit-density TSM",
+    )
     parser.add_argument("--scalability", action="store_true",
                         help="Run scalability study (hit rate vs request count)")
     parser.add_argument("--checkpoint_every", type=int, default=50,
                         help="Record metrics every N requests (scalability mode)")
     parser.add_argument("--device", default="cuda",
                         help="Torch device (cuda / cpu)")
+    parser.add_argument("--gpu_capacity_gb", type=float, default=20.0)
+    parser.add_argument("--cpu_capacity_gb", type=float, default=64.0)
+    parser.add_argument("--ssd_capacity_gb", type=float, default=200.0)
+    parser.add_argument(
+        "--ssd_path",
+        default=None,
+        help="NVMe directory or mounted remote filesystem used as L3",
+    )
     args = parser.parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
@@ -742,14 +844,46 @@ def main():
 
     elif args.ablation:
         logger.info("Running ablation study …")
-        results = run_ablation(engine, requests, args.max_new_tokens)
+        results = run_ablation(
+            engine,
+            requests,
+            args.max_new_tokens,
+            gpu_capacity_gb=args.gpu_capacity_gb,
+            cpu_capacity_gb=args.cpu_capacity_gb,
+            ssd_capacity_gb=args.ssd_capacity_gb,
+            ssd_path=args.ssd_path,
+        )
         _print_table(results)
         _save_results(results, os.path.join(args.output_dir, "ablation.json"))
+
+    elif args.storage_policies:
+        logger.info("Running physical storage-policy comparison …")
+        results = run_storage_policy_comparison(
+            engine,
+            requests,
+            args.max_new_tokens,
+            gpu_capacity_gb=args.gpu_capacity_gb,
+            cpu_capacity_gb=args.cpu_capacity_gb,
+            ssd_capacity_gb=args.ssd_capacity_gb,
+            ssd_path=args.ssd_path,
+        )
+        _print_table(results)
+        _save_results(
+            results,
+            os.path.join(args.output_dir, "storage_policies.json"),
+        )
 
     elif args.scalability:
         logger.info("Running scalability study …")
         result = run_scalability(
-            engine, requests, args.max_new_tokens, args.checkpoint_every
+            engine,
+            requests,
+            args.max_new_tokens,
+            args.checkpoint_every,
+            gpu_capacity_gb=args.gpu_capacity_gb,
+            cpu_capacity_gb=args.cpu_capacity_gb,
+            ssd_capacity_gb=args.ssd_capacity_gb,
+            ssd_path=args.ssd_path,
         )
         out_path = os.path.join(args.output_dir, "scalability.json")
         with open(out_path, "w") as f:
@@ -764,8 +898,18 @@ def main():
         results.append(run_exact_cache(engine, requests, args.max_new_tokens))
         results.append(run_semshare_kv(engine, requests, threshold=0.70,
                                        max_new_tokens=args.max_new_tokens))
-        results.append(run_semanticache(engine, requests, threshold=args.threshold,
-                                        max_new_tokens=args.max_new_tokens))
+        results.append(
+            run_semanticache(
+                engine,
+                requests,
+                threshold=args.threshold,
+                max_new_tokens=args.max_new_tokens,
+                gpu_capacity_gb=args.gpu_capacity_gb,
+                cpu_capacity_gb=args.cpu_capacity_gb,
+                ssd_capacity_gb=args.ssd_capacity_gb,
+                ssd_path=args.ssd_path,
+            )
+        )
         _print_table(results)
         _save_results(results, os.path.join(
             args.output_dir, f"benchmark_{args.dataset}_n{args.num_requests}.json"))

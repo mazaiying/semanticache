@@ -1,0 +1,38 @@
+[
+  {
+    "name": "No Cache",
+    "hit_rate": 0.0,
+    "exact_hit_rate": 0.0,
+    "semantic_hit_rate": 0.0,
+    "mean_ttft_ms": 1.0635911487042904,
+    "throughput_rps": 940.2109083158884,
+    "bertscore": 1.0
+  },
+  {
+    "name": "vLLM APC",
+    "hit_rate": 0.0,
+    "exact_hit_rate": 0.0,
+    "semantic_hit_rate": 0.0,
+    "mean_ttft_ms": 1.0686583928763866,
+    "throughput_rps": 935.7527219792037,
+    "bertscore": 1.0
+  },
+  {
+    "name": "SemShareKV",
+    "hit_rate": 0.204,
+    "exact_hit_rate": 0.0,
+    "semantic_hit_rate": 0.204,
+    "mean_ttft_ms": 1.6381383165717125,
+    "throughput_rps": 610.4490627462978,
+    "bertscore": 0.88
+  },
+  {
+    "name": "SemantiCache",
+    "hit_rate": 0.206,
+    "exact_hit_rate": 0.0,
+    "semantic_hit_rate": 0.206,
+    "mean_ttft_ms": 1.43299625441432,
+    "throughput_rps": 697.8385302261031,
+    "bertscore": 0.95
+  }
+]

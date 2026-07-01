@@ -115,6 +115,29 @@ class TenantIsolationLayer:
                     policy.private_block_count += 1
             self._stats["private_blocks"] += 1
 
+    def unregister_block(
+        self,
+        block_id: str,
+        sensitivity: str,
+        tenant_id: Optional[str] = None,
+    ) -> None:
+        """Remove metadata for a block that was finally evicted from storage."""
+        if sensitivity == "public":
+            if block_id in self._public_blocks:
+                self._public_blocks.remove(block_id)
+                self._stats["public_blocks"] = max(
+                    0, self._stats["public_blocks"] - 1
+                )
+            return
+        if tenant_id and block_id in self._private_blocks.get(tenant_id, set()):
+            self._private_blocks[tenant_id].remove(block_id)
+            policy = self._policies.get(tenant_id)
+            if policy:
+                policy.private_block_count = max(0, policy.private_block_count - 1)
+            self._stats["private_blocks"] = max(
+                0, self._stats["private_blocks"] - 1
+            )
+
     def check_access(
         self,
         block_id: str,

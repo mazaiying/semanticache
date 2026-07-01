@@ -109,6 +109,10 @@ class QwenInferenceEngine:
         if self.model is None or self.tokenizer is None:
             raise RuntimeError("Call engine.load() first.")
 
+    def _synchronize(self) -> None:
+        if torch.cuda.is_available() and str(self.device).startswith("cuda"):
+            torch.cuda.synchronize(self.device)
+
     # ──────────────────────────────────────────────────────
     # Core inference paths
     # ──────────────────────────────────────────────────────
@@ -137,6 +141,7 @@ class QwenInferenceEngine:
         input_ids = input_ids.to(self.device)
 
         # ── Prefill ──────────────────────────────────────
+        self._synchronize()
         t0 = time.perf_counter()
         with torch.no_grad():
             prefill_out = self.model(
@@ -145,13 +150,15 @@ class QwenInferenceEngine:
                 return_dict=True,
             )
 
-        # Pack KV IMMEDIATELY before decode modifies DynamicCache in place
-        kv_list = self._pack_kv(prefill_out.past_key_values)
-
         # First generated token (completes TTFT measurement)
         first_logits = prefill_out.logits[:, -1, :]
         first_token = torch.argmax(first_logits, dim=-1, keepdim=True)
+        self._synchronize()
         ttft_ms = (time.perf_counter() - t0) * 1000
+
+        # Snapshot KV after TTFT so cache admission does not inflate prefill
+        # latency, but before decode can extend DynamicCache in place.
+        kv_list = self._pack_kv(prefill_out.past_key_values)
 
         # ── Decode ───────────────────────────────────────
         generated_ids = [first_token.item()]
@@ -198,7 +205,9 @@ class QwenInferenceEngine:
         """
         self._ensure_loaded()
 
-        # Rebuild a proper DynamicCache on GPU via update()
+        # Hit TTFT includes restoration/upload from the selected storage tier.
+        self._synchronize()
+        t0 = time.perf_counter()
         past_kv = self._unpack_kv(kv_list, self.device, self.dtype)
 
         start_token = torch.tensor(
@@ -208,7 +217,6 @@ class QwenInferenceEngine:
         )
 
         # ── First decode step = TTFT ──────────────────────
-        t0 = time.perf_counter()
         with torch.no_grad():
             out = self.model(
                 input_ids=start_token,
@@ -217,6 +225,7 @@ class QwenInferenceEngine:
                 return_dict=True,
             )
         first_token = torch.argmax(out.logits[:, -1, :], dim=-1, keepdim=True)
+        self._synchronize()
         ttft_ms = (time.perf_counter() - t0) * 1000
 
         # ── Continue decoding ─────────────────────────────

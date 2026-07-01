@@ -180,6 +180,8 @@ class HierarchicalSemanticIndex:
         query_vector: np.ndarray,
         tenant_id: Optional[str] = None,
         top_k: int = 5,
+        enable_semantic: bool = True,
+        enforce_access: bool = True,
     ) -> Tuple[Optional[CacheBlock], str]:
         """
         Hierarchical lookup: exact first, then semantic.
@@ -195,7 +197,7 @@ class HierarchicalSemanticIndex:
         if exact_hash in self.exact_index:
             block = self.exact_index[exact_hash]
             # Tenant isolation check
-            if self._is_accessible(block, tenant_id):
+            if not enforce_access or self._is_accessible(block, tenant_id):
                 block.access_count += 1
                 block.last_access = time.time()
                 self._stats["exact_hits"] += 1
@@ -203,6 +205,10 @@ class HierarchicalSemanticIndex:
                 return block, "exact"
 
         # --- Level 2: Semantic LSH match ---
+        if not enable_semantic:
+            self._stats["misses"] += 1
+            return None, "miss"
+
         candidate_ids = self.lsh_index.query(query_vector, top_k=top_k)
         best_block = None
         best_sim = -1.0
@@ -211,7 +217,7 @@ class HierarchicalSemanticIndex:
             block = self.blocks.get(cid)
             if block is None:
                 continue
-            if not self._is_accessible(block, tenant_id):
+            if enforce_access and not self._is_accessible(block, tenant_id):
                 continue
             sim = self._cosine_similarity(query_vector, block.semantic_vector)
             if sim > best_sim:

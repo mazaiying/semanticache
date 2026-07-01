@@ -1,0 +1,60 @@
+{
+  "hsi": {
+    "exact_hits": 0,
+    "semantic_hits": 293,
+    "misses": 7,
+    "total_queries": 300,
+    "exact_hit_rate": 0.0,
+    "semantic_hit_rate": 0.9766666666666667,
+    "miss_rate": 0.023333333333333334,
+    "total_hit_rate": 0.9766666666666667
+  },
+  "qbr": {
+    "total_decisions": 293,
+    "approved": 285,
+    "rejected_similarity": 8,
+    "rejected_quality": 0,
+    "exact_pass": 0,
+    "approval_rate": 0.9726962457337884,
+    "current_tau": 0.85,
+    "mean_recent_quality": null
+  },
+  "tsm": {
+    "l1": {
+      "used_gb": 0.019546504,
+      "capacity_gb": 0.02,
+      "utilization": 0.9773251999999999,
+      "hit_rate": 0.0,
+      "blocks": 9
+    },
+    "l2": {
+      "used_gb": 0.012977598,
+      "capacity_gb": 0.05,
+      "utilization": 0.25955195999999997,
+      "hit_rate": 0.0,
+      "blocks": 6
+    },
+    "l3": {
+      "used_gb": 0.0,
+      "capacity_gb": 5.0,
+      "utilization": 0.0,
+      "hit_rate": 0.0,
+      "blocks": 0
+    }
+  },
+  "til": {
+    "access_allowed": 285,
+    "access_denied": 0,
+    "public_blocks": 15,
+    "private_blocks": 0,
+    "cross_tenant_shares": 203,
+    "registered_tenants": 4,
+    "leakage_rate": 0.0
+  },
+  "overall": {
+    "total_requests": 300,
+    "overall_hit_rate": 0.9766666666666667,
+    "qbr_approval_rate": 0.9726962457337884,
+    "current_tau": 0.85
+  }
+}
