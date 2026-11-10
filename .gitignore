@@ -15,11 +15,11 @@ build/
 env/
 venv/
 
-# Data and results (too large for GitHub)
+# Data and results
 results/raw/
 results/logs/
-*.jsonl
 *.log
+!results/*/records.jsonl
 
 # Model weights (download separately via huggingface-cli)
 models/

@@ -1,0 +1,58 @@
+
+== QA F1 (higher better) ==
+method                  orig   reorder    format      edit       ALL
+full                   0.447     0.466     0.498     0.141     0.388
+apc                    0.447     0.466     0.498     0.141     0.388
+gptcache               0.447     0.447     0.447     0.009     0.338
+cacheblend_r0          0.362     0.344     0.394     0.084     0.297
+cacheblend             0.395     0.392     0.393     0.108     0.323
+naive_sem              0.362     0.344     0.372     0.022     0.276
+semanticache_r0        0.362     0.344     0.342     0.076     0.282
+semanticache_halo0     0.395     0.392     0.403     0.091     0.321
+semanticache           0.395     0.392     0.416     0.093     0.325
+
+== TTFT ms (lower better) ==
+method                  orig   reorder    format      edit       ALL
+full                 398.947   399.030   399.375   400.905   399.561
+apc                  398.299   344.522   371.470   411.696   381.421
+gptcache             397.640     9.748     9.146     9.028   106.635
+cacheblend_r0         84.538    57.360   296.405   381.915   204.611
+cacheblend           151.585   140.043   334.064   402.342   256.644
+naive_sem             69.707    52.217    76.255    92.749    72.682
+semanticache_r0       69.004    50.877   150.159   168.701   109.538
+semanticache_halo0   158.226   140.815   207.364   226.097   183.018
+semanticache         157.971   140.911   233.810   251.426   195.891
+
+== End-to-end ms ==
+method                  orig   reorder    format      edit       ALL
+full                 605.569   601.092   634.449   627.373   617.095
+apc                  605.539   553.140   599.669   632.644   597.660
+gptcache             608.113     9.748     9.146     9.028   159.385
+cacheblend_r0        502.978   475.986   719.761   721.571   604.782
+cacheblend           413.734   393.975   588.581   643.730   509.670
+naive_sem            455.986   445.751   491.903   505.673   474.751
+semanticache_r0      448.956   448.759   547.775   619.803   516.064
+semanticache_halo0   422.675   395.883   479.939   537.616   458.831
+semanticache         422.538   399.287   486.078   555.999   465.750
+
+== edit requests: stale-answer F1 (lower better) ==
+full                   0.201
+apc                    0.201
+gptcache               0.452
+cacheblend_r0          0.141
+cacheblend             0.178
+naive_sem              0.291
+semanticache_r0        0.153
+semanticache_halo0     0.174
+semanticache           0.163
+
+== fraction of tokens computed ==
+full                   1.000
+apc                    0.926
+gptcache               1.000
+cacheblend_r0          0.310
+cacheblend             0.414
+naive_sem              0.019
+semanticache_r0        0.064
+semanticache_halo0     0.172
+semanticache           0.204

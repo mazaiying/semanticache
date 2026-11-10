@@ -1,0 +1,18 @@
+
+== QA F1 (higher better) ==
+method                  orig   reorder    format      edit     drift       ALL
+cacheblend             0.523     0.508     0.525     0.289         -     0.468
+
+== TTFT ms (lower better) ==
+method                  orig   reorder    format      edit     drift       ALL
+cacheblend           214.719   200.512   527.835   800.518         -   421.690
+
+== End-to-end ms ==
+method                  orig   reorder    format      edit     drift       ALL
+cacheblend           421.374   429.389   791.238  1009.631         -   649.399
+
+== edit requests: stale-answer F1 (lower better) ==
+cacheblend             0.212
+
+== fraction of tokens computed ==
+cacheblend             0.455

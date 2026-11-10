@@ -1,0 +1,23 @@
+
+== QA F1 (higher better) ==
+method                  orig   reorder    format      edit       ALL
+semanticache           0.523     0.508     0.495     0.296     0.462
+cacheblend             0.523     0.508     0.525     0.289     0.468
+
+== TTFT ms (lower better) ==
+method                  orig   reorder    format      edit       ALL
+semanticache         218.013   186.794   360.948   507.354   310.911
+cacheblend           188.697   188.068   511.421   783.541   403.687
+
+== End-to-end ms ==
+method                  orig   reorder    format      edit       ALL
+semanticache         423.072   413.223   596.339   700.709   526.815
+cacheblend           395.607   416.784   774.743   992.362   631.335
+
+== edit requests: stale-answer F1 (lower better) ==
+semanticache           0.202
+cacheblend             0.212
+
+== fraction of tokens computed ==
+semanticache           0.214
+cacheblend             0.455

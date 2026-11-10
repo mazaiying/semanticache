@@ -1,0 +1,26 @@
+method        rate  achieved  lat_p50  lat_p95  lat_p99  queue_mean  service_mean
+full          0.40      0.41      743     1979     2397         171           749
+full          0.80      0.84     1345     4668     6360         952           746
+full          1.20      1.16     2024     4522     5930        1585           707
+full          1.60      1.36    15163    29050    29745       16097           721
+full          2.00      1.33    17972    28743    29378       17972           747
+apc           0.40      0.41      679     2168     3306         181           737
+apc           0.80      0.84     1167     4145     4580         827           744
+apc           1.20      1.17     2512     5304     7627        2024           743
+apc           1.60      1.39    13785    22530    24530       13019           709
+apc           2.00      1.35    20888    25144    26128       17932           738
+cacheblend    0.40      0.41      521     2154     2957         154           612
+cacheblend    0.80      0.84      768     5224     6872         794           599
+cacheblend    1.20      1.18     1490     3456     4023         968           608
+cacheblend    1.60      1.48    12682    23490    25082       11923           652
+cacheblend    2.00      1.44    12169    21070    22791       12158           689
+semanticache  0.40      0.41      390     1311     1816          84           462
+semanticache  0.80      0.84      572     1955     2485         251           488
+semanticache  1.20      1.16      802     3482     3852         648           546
+semanticache  1.60      1.80     2754     6787     7189        2779           521
+semanticache  2.00      1.75     1601     6641     7770        1820           518
+
+closed-loop max throughput full: 1.356 req/s
+closed-loop max throughput apc: 1.315 req/s
+closed-loop max throughput cacheblend: 1.593 req/s
+closed-loop max throughput semanticache: 1.842 req/s

@@ -1,0 +1,29 @@
+
+== QA F1 (higher better) ==
+method                  orig   reorder    format      edit     drift       ALL
+full                       -         -         -         -     0.549     0.549
+cacheblend                 -         -         -         -     0.558     0.558
+semanticache_always         -         -         -         -     0.542     0.542
+semanticache               -         -         -         -     0.542     0.542
+
+== TTFT ms (lower better) ==
+method                  orig   reorder    format      edit     drift       ALL
+full                       -         -         -         -   536.596   536.596
+cacheblend                 -         -         -         -   318.579   318.579
+semanticache_always         -         -         -         -   244.122   244.122
+semanticache               -         -         -         -   227.262   227.262
+
+== End-to-end ms ==
+method                  orig   reorder    format      edit     drift       ALL
+full                       -         -         -         -   777.882   777.882
+cacheblend                 -         -         -         -   576.291   576.291
+semanticache_always         -         -         -         -   518.958   518.958
+semanticache               -         -         -         -   494.746   494.746
+
+== edit requests: stale-answer F1 (lower better) ==
+
+== fraction of tokens computed ==
+full                   1.000
+cacheblend             0.359
+semanticache_always     0.189
+semanticache           0.189

@@ -1,0 +1,20 @@
+{
+ "model": "~/models/qwen2.5-7b-instruct",
+ "device": "cuda:0",
+ "dataset": "hotpotqa",
+ "data_dir": "~/sc2/data/longbench/data",
+ "n_samples": 60,
+ "max_ctx": 4096,
+ "methods": [
+  "semanticache"
+ ],
+ "ratio": 0.15,
+ "tau": 0.8,
+ "tau_q": 0.9,
+ "omega": 0.5,
+ "halo": 8,
+ "max_new_tokens": 32,
+ "gpu_budget_gb": 20.0,
+ "seed": 0,
+ "out": "runs/q2_omega_0.5"
+}

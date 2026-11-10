@@ -1,0 +1,28 @@
+{
+ "model": "~/models/qwen2.5-7b-instruct",
+ "device": "cuda:0",
+ "dataset": "2wikimqa",
+ "data_dir": "~/sc2/data/longbench/data",
+ "n_samples": 100,
+ "max_ctx": 4096,
+ "methods": [
+  "full",
+  "apc",
+  "gptcache",
+  "cacheblend_r0",
+  "cacheblend",
+  "naive_sem",
+  "semanticache_r0",
+  "semanticache_halo0",
+  "semanticache"
+ ],
+ "ratio": 0.15,
+ "tau": 0.8,
+ "tau_q": 0.9,
+ "omega": 0.5,
+ "halo": 8,
+ "max_new_tokens": 32,
+ "gpu_budget_gb": 20.0,
+ "seed": 1,
+ "out": "runs/q5_2wikimqa_q7b_s1"
+}

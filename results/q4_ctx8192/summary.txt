@@ -1,0 +1,38 @@
+
+== QA F1 (higher better) ==
+method                  orig   reorder    format      edit       ALL
+full                   0.560     0.486     0.533     0.243     0.464
+apc                    0.560     0.485     0.533     0.243     0.464
+cacheblend             0.498     0.414     0.482     0.224     0.412
+naive_sem              0.347     0.398     0.387     0.039     0.303
+semanticache           0.498     0.414     0.443     0.208     0.398
+
+== TTFT ms (lower better) ==
+method                  orig   reorder    format      edit       ALL
+full                 731.306   731.395   733.885   766.636   739.799
+apc                  731.760   697.898   751.871   815.313   746.635
+cacheblend           294.143   252.414   661.577  1001.717   534.959
+naive_sem             97.419    60.038    87.136   152.161    97.125
+semanticache         289.860   253.069   454.608   548.977   380.303
+
+== End-to-end ms ==
+method                  orig   reorder    format      edit       ALL
+full                 930.038   938.830   916.465   908.828   924.114
+apc                  928.975   903.264   933.737   956.206   929.546
+cacheblend           506.938   474.784   898.764  1144.267   741.068
+naive_sem            381.410   326.868   405.971   455.993   390.089
+semanticache         512.776   491.612   687.599   768.152   609.069
+
+== edit requests: stale-answer F1 (lower better) ==
+full                   0.228
+apc                    0.228
+cacheblend             0.201
+naive_sem              0.393
+semanticache           0.176
+
+== fraction of tokens computed ==
+full                   1.000
+apc                    0.970
+cacheblend             0.419
+naive_sem              0.018
+semanticache           0.202

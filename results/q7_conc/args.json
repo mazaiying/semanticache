@@ -1,0 +1,31 @@
+{
+ "model": "~/models/qwen2.5-7b-instruct",
+ "device": "cuda:0",
+ "dataset": "hotpotqa",
+ "data_dir": "~/sc2/data/longbench/data",
+ "n_samples": 60,
+ "max_ctx": 4096,
+ "n_req": 150,
+ "methods": [
+  "full",
+  "apc",
+  "cacheblend",
+  "semanticache"
+ ],
+ "rates": [
+  0.4,
+  0.8,
+  1.2,
+  1.6,
+  2.0
+ ],
+ "ratio": 0.15,
+ "tau": 0.8,
+ "tau_q": 0.9,
+ "omega": 0.5,
+ "halo": 8,
+ "max_new_tokens": 32,
+ "gpu_budget_gb": 20.0,
+ "seed": 0,
+ "out": "runs/q7_conc"
+}
